@@ -4,6 +4,8 @@ import sys
 import subprocess
 import os
 import random
+import argparse
+import pdb
 
 sys.path.append(os.path.abspath('..'))
 
@@ -12,19 +14,36 @@ from is13.rnn.deep import model
 from is13.metrics.accuracy import conlleval
 from is13.utils.tools import shuffle, minibatch, contextwin
 
-if __name__ == '__main__':
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-v', '--verbose', action='count', default=1,
+                        help='Adjust level of verbosity.')
+    parser.add_argument('-nh', '--num-hidden', dest='num_hidden', type=int, default=100,
+                        help='Set dimension of hidden units.')
+    parser.add_argument('-w', '--window', type=int, default=5,
+                        help='Set size of context window (in words).')
+    parser.add_argument('-d', '--depth', type=int, default=3,
+                        help='Set number of stacked layers')
+    parser.add_argument('--seed', type=int, default=345,
+                        help='Set PRNG seed')
+    parser.add_argument('--emb-dim', dest='emb_dimension', type=int, default=100,
+                        help='Set size of word embeddings')
+    parser.add_argument('-e', '--num-epochs', dest='num_epochs', type=int, default=50,
+                        help='Set number of epochs to train')
+
+    args = parser.parse_args()
 
     s = {'fold':3, # 5 folds 0,1,2,3,4
          'lr':0.0627142536696559,
-         'verbose':1,
-         'decay':False, # decay on the learning rate if improvement stops
-         'win':5, # number of words in the context window
+         'verbose': args.verbose,
+         'decay': False, # decay on the learning rate if improvement stops
+         'win': args.window, # number of words in the context window
          'bs':9, # number of backprop through time steps
-         'nhidden':20, # number of hidden units
-         'depth':2, # number of layers in space
-         'seed':345,
-         'emb_dimension':100, # dimension of word embedding
-         'nepochs':50}
+         'nhidden': args.num_hidden, # number of hidden units
+         'depth': args.depth, # number of layers in space
+         'seed': args.seed,
+         'emb_dimension': args.emb_dimension, # dimension of word embedding
+         'nepochs': args.num_epochs}
 
     folder = os.path.basename(__file__).split('.')[0]
     if not os.path.exists(folder): os.mkdir(folder)
@@ -45,12 +64,10 @@ if __name__ == '__main__':
     nclasses = len(set(reduce(\
                        lambda x, y: list(x)+list(y),\
                        train_y+test_y+valid_y)))
-
-    print "nclasses: %d" % nclasses
     
     nsentences = len(train_lex)
 
-    # instanciate the model
+    # instantiate the model
     numpy.random.seed(s['seed'])
     random.seed(s['seed'])
     rnn = model(    nh = s['nhidden'],
@@ -74,6 +91,7 @@ if __name__ == '__main__':
                          minibatch(cwords, s['bs']))
             labels = train_y[i]
             for word_batch , label_last_word in zip(words, labels):
+                pdb.set_trace()
                 rnn.train(word_batch, label_last_word, s['clr'])
                 rnn.normalize()
             if s['verbose']:
@@ -116,3 +134,5 @@ if __name__ == '__main__':
 
     print 'BEST RESULT: epoch', e, 'valid F1', s['vf1'], 'best test F1', s['tf1'], 'with the model', folder
 
+if __name__ == '__main__':
+    main()

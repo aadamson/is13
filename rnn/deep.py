@@ -188,4 +188,4 @@ class model(object):
 
     def save(self, folder):   
         for param, name in zip(self.params, self.names):
-            numpy.save(os.path.join(folder, name + '.npy'), param.get_value())
+            np.save(os.path.join(folder, name + '.npy'), param.get_value())
