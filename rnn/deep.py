@@ -85,6 +85,14 @@ class model(object):
                        self.forward_w1, self.back_w1,
                        self.forward_h1_0, self.back_h1_tp1]
 
+        self.names  = ['embeddings', 
+                       'forward_w', 'back_w', 
+                       'forward_v', 'back_v', 
+                       'forward_b', 'back_b', 
+                       'c', 'forward_U', 'back_U',
+                       'forward_w1', 'back_w1',
+                       'forward_h1_0', 'back_h1_tp1']
+
         idxs = T.imatrix()
         x = self.emb[idxs].reshape((idxs.shape[0], de*cs))
         y = T.iscalar('y') # label

@@ -19,7 +19,7 @@ This code allows to get state-of-the-art results and a significant improvement
 In order to reproduce the results, make sure Theano is installed and run the following commands:
 
 ```
-git clone git@github.com:mesnilgr/is13.git
+git clone git@github.com:aadamson/is13.git
 cd is13
 python examples/elman-forward.py
 ```
