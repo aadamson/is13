@@ -30,9 +30,17 @@ For running the Jordan architecture:
 python examples/jordan-forward.py
 ```
 
+For running the Deep RNN architecture:
+```
+python examples/deep-example.py
+```
+
 ## ATIS Data
 
 [Download ATIS Dataset here!](https://www.dropbox.com/s/3lxl9jsbw0j7h8a/atis.pkl?dl=0)
+
+Note that running any of the examples will download all necessary data
+automatically.
 
 ```
 import cPickle
