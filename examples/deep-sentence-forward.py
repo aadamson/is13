@@ -35,7 +35,7 @@ def main():
     args = parser.parse_args()
 
     s = {'fold': 3, # 5 folds 0,1,2,3,4
-         'lr': 0.15,
+         'lr': 1,
          'verbose': args.verbose,
          'decay': False, # decay on the learning rate if improvement stops
          'win': args.window, # number of words in the context window
@@ -82,30 +82,32 @@ def main():
         shuffle([train_lex, train_y], s['seed'])
         s['ce'] = e
         tic = time.time()
-        for i in xrange(nsentences):
+        for i in xrange(nsentences/8):
             # try:
-                words = numpy.asarray(train_lex[i]).astype('int32').reshape((len(train_lex[i]), 1))
-                labels = numpy.asarray(train_y[i]).astype('int32').reshape(len(train_y[i]))
+                #words = numpy.asarray(train_lex[i]).astype('int32').reshape((len(train_lex[i]), 1))
+                #labels = numpy.asarray(train_y[i]).astype('int32').reshape(len(train_y[i]))
                 #print words
-                if len(words) == 0: continue
-                rnn.train(words, labels, s['clr'])
-                rnn.normalize()
+                #if len(words) == 0: continue
+                #rnn.train(words, labels, s['clr'])
+                #rnn.normalize()
            #except:
                 # 1
                 #pdb.set_trace()
             #try:
-                # cwords = contextwin(train_lex[i], s['win'])
-                # words  = map(lambda x: numpy.asarray(x).astype('int32'),\
-                #              minibatch(cwords, s['bs']))
+                cwords = contextwin(train_lex[i], s['win'])
+                words  = map(lambda x: numpy.asarray(x).astype('int32'),\
+                             minibatch(cwords, s['bs']))
 
-                # clabels = contextwin(train_y[i], s['win'])
-                # labels = map(lambda x: numpy.asarray(x).astype('int32'),\
-                #              minibatch(clabels, s['bs']))
-                # for word_batch, label_batch in zip(words, labels):
-                #     print "Word batch: ", word_batch
-                #     print "label_batch: ", label_batch
-                #     rnn.train(word_batch, label_batch, s['clr'])
-                #     rnn.normalize()
+                #clabels = contextwin(train_y[i], s['win'])
+                labels = map(lambda x: numpy.asarray(x).astype('int32'),\
+                             minibatch(train_y[i], s['bs']))
+                #labels = [numpy.asarray(train_y[i][:(end+1)]).astype('int32') for end in xrange(s['bs'])]
+                for word_batch, label_batch in zip(words, labels):
+                    #print "Word batch: ", word_batch
+                    #print "label_batch: ", label_batch
+                    rnn.train(word_batch, label_batch, s['clr'])
+                    rnn.normalize()
+
                 if s['verbose']:
                     print '[learning] epoch %i >> %2.2f%%'%(e,(i+1)*100./nsentences),'completed in %.2f (sec) <<\r'%(time.time()-tic),
                     sys.stdout.flush()
@@ -114,17 +116,29 @@ def main():
         
         #pdb.set_trace()
         # evaluation // back into the real world : idx -> words
+        # predictions_test = [ map(lambda x: idx2label[x], \
+        #                      rnn.classify(numpy.asarray(x).astype('int32').reshape((len(x), 1)))) \
+        #                      for x in test_lex if len(x) > 0 ]
+        # groundtruth_test = [ map(lambda x: idx2label[x], y) for y in test_y if len(y) > 0 ]
+        # words_test = [ map(lambda x: idx2word[x], w) for w in test_lex if len(w) > 0 ]
+
+        # predictions_valid = [ map(lambda x: idx2label[x], \
+        #                      rnn.classify(numpy.asarray(x).astype('int32').reshape((len(x), 1)))) \
+        #                      for x in valid_lex if len(x) > 0 ]
+        # groundtruth_valid = [ map(lambda x: idx2label[x], y) for y in valid_y if len(y) > 0 ]
+        # words_valid = [ map(lambda x: idx2word[x], w) for w in valid_lex if len(w) > 0 ]
+
         predictions_test = [ map(lambda x: idx2label[x], \
-                             rnn.classify(numpy.asarray(x).astype('int32').reshape((len(x), 1)))) \
+                             rnn.classify(numpy.asarray(contextwin(x, s['win'])).astype('int32')))\
                              for x in test_lex if len(x) > 0 ]
         groundtruth_test = [ map(lambda x: idx2label[x], y) for y in test_y if len(y) > 0 ]
         words_test = [ map(lambda x: idx2word[x], w) for w in test_lex if len(w) > 0 ]
 
-        predictions_valid = [ map(lambda x: idx2label[x], \
-                             rnn.classify(numpy.asarray(x).astype('int32').reshape((len(x), 1)))) \
-                             for x in valid_lex if len(x) > 0 ]
-        groundtruth_valid = [ map(lambda x: idx2label[x], y) for y in valid_y if len(y) > 0 ]
-        words_valid = [ map(lambda x: idx2word[x], w) for w in valid_lex if len(w) > 0 ]
+        # predictions_valid = [ map(lambda x: idx2label[x], \
+        #                      rnn.classify(numpy.asarray(contextwin(x, s['win'])).astype('int32')))\
+        #                      for x in valid_lex ]
+        # groundtruth_valid = [ map(lambda x: idx2label[x], y) for y in valid_y ]
+        # words_valid = [ map(lambda x: idx2word[x], w) for w in valid_lex]
 
         #pdb.set_trace()
 

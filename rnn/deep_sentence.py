@@ -50,10 +50,10 @@ class model(object):
         # First layer parameters
         self.forward_w1 = theano.shared(name='forward_w1',
                                         value=0.2 * np.random.uniform(-1.0, 1.0,
-                                        (de, nh)))
+                                        (de*cs, nh)))
         self.back_w1    = theano.shared(name='back_w1',
                                         value=0.2 * np.random.uniform(-1.0, 1.0,
-                                        (de, nh)))
+                                        (de*cs, nh)))
 
         # Output layer parameters
         self.c         = theano.shared(name='c',
@@ -94,7 +94,7 @@ class model(object):
                        'forward_h1_0', 'back_h1_tp1']
 
         idxs       = T.imatrix()
-        x = self.emb[idxs].reshape((idxs.shape[0], de))
+        x = self.emb[idxs].reshape((idxs.shape[0], de*cs))
         y = T.ivector('y') # labels
 
         def s_t(forward_h_t_i, back_h_t_i):
@@ -173,6 +173,9 @@ class model(object):
         _nll = T.log(p_y_given_x)
         __nll = _nll[T.arange(x.shape[0]), y]
         nll = -T.mean(__nll)
+
+        #cee = -T.sum(T.log(p_y_given_x))
+
         gradients = T.grad(nll, self.params)
         updates = OrderedDict(( p, p-lr*g ) for p, g in zip( self.params , gradients))
         
