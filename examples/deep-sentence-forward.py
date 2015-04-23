@@ -130,7 +130,8 @@ def main():
 
         # evaluation // compute the accuracy using conlleval.pl
 
-        print "Accuracy after %d epochs: %g" % (e, accuracy(predictions_test, groundtruth_test))
+        print "Accuracy after %d epochs: %g" % (e, accuracy([item for sublist in predictions_test for item in sublist], 
+                                                            [item for sublist in groundtruth_test for item in sublist]))
         
         #res_test  = conlleval(predictions_test, groundtruth_test, words_test, folder + '/current.test.txt')
         #res_valid = conlleval(predictions_valid, groundtruth_valid, words_valid, folder + '/current.valid.txt')
