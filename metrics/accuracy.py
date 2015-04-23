@@ -38,7 +38,7 @@ def conlleval(p, g, w, filename):
     return get_perf(filename)
 
 def accuracy(predicted, groundtruth):
-    errors = numpy.count_nonzero(numpy.array(predicted) - numpy.array(groundtruth))
+    errors = numpy.count_nonzero(numpy.subtract(numpy.array(predicted), numpy.array(groundtruth)))
     return float(errors) / len(predicted)
 
 def get_perf(filename):
