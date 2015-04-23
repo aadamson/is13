@@ -90,8 +90,10 @@ def main():
             words  = map(lambda x: numpy.asarray(x).astype('int32'),\
                          minibatch(cwords, s['bs']))
             labels = train_y[i]
-            for word_batch , label_last_word in zip(words, labels):
-                pdb.set_trace()
+            for word_batch, label_last_word in zip(words, labels):
+                print word_batch
+                #print label_last_word
+                #pdb.set_trace()
                 rnn.train(word_batch, label_last_word, s['clr'])
                 rnn.normalize()
             if s['verbose']:
