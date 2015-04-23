@@ -12,7 +12,7 @@ sys.path.append(os.path.abspath('..'))
 from is13.data import load
 from is13.data import mpqa_load
 from is13.rnn.deep_sentence import model
-from is13.metrics.accuracy import conlleval
+from is13.metrics.accuracy import conlleval, accuracy
 from is13.utils.tools import shuffle, minibatch, contextwin
 
 def main():
@@ -34,12 +34,12 @@ def main():
 
     args = parser.parse_args()
 
-    s = {'fold':3, # 5 folds 0,1,2,3,4
-         'lr':0.0627142536696559,
+    s = {'fold': 3, # 5 folds 0,1,2,3,4
+         'lr': 0.15,
          'verbose': args.verbose,
          'decay': False, # decay on the learning rate if improvement stops
          'win': args.window, # number of words in the context window
-         'bs':9, # number of backprop through time steps
+         'bs': 9, # number of backprop through time steps
          'nhidden': args.num_hidden, # number of hidden units
          'depth': args.depth, # number of layers in space
          'seed': args.seed,
@@ -82,7 +82,7 @@ def main():
         shuffle([train_lex, train_y], s['seed'])
         s['ce'] = e
         tic = time.time()
-        for i in xrange(nsentences/8):
+        for i in xrange(nsentences):
             # try:
                 words = numpy.asarray(train_lex[i]).astype('int32').reshape((len(train_lex[i]), 1))
                 labels = numpy.asarray(train_y[i]).astype('int32').reshape(len(train_y[i]))
@@ -126,9 +126,11 @@ def main():
         groundtruth_valid = [ map(lambda x: idx2label[x], y) for y in valid_y if len(y) > 0 ]
         words_valid = [ map(lambda x: idx2word[x], w) for w in valid_lex if len(w) > 0 ]
 
-        pdb.set_trace()
+        #pdb.set_trace()
 
         # evaluation // compute the accuracy using conlleval.pl
+
+        print "Accuracy after %d epochs: %g" % (e, accuracy(predictions_test, groundtruth_test))
         
         #res_test  = conlleval(predictions_test, groundtruth_test, words_test, folder + '/current.test.txt')
         #res_valid = conlleval(predictions_valid, groundtruth_valid, words_valid, folder + '/current.valid.txt')
