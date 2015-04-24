@@ -54,7 +54,7 @@ def main():
 
     args = parser.parse_args()
 
-    s = {'lr': 0.000627142536696559,
+    s = {'lr': 0.0005,
          'verbose': args.verbose,
          'decay': True, # decay on the learning rate if improvement stops
          'nhidden': args.num_hidden, # number of hidden units
@@ -109,8 +109,9 @@ def main():
             #rnn.normalize()
 
             if args.verbose > 0 and i % 10000 == 0:
-                pdb.set_trace()
-                print _s
+                #pdb.set_trace()
+                for idx in xrange(len(words)):
+                    print [round(item, 3) for item in _s[idx,0,:].tolist()], labels[idx]
                 print '[learning] epoch %i >> %2.2f%%' % (e, (i+1)*100./nsentences), '\tCurrent log loss: %g' % nll
                 sys.stdout.flush()
 
@@ -142,6 +143,7 @@ def main():
         if error_rate < best_f1:
             s['be'] = e
 
+        #print "Nonzero prediction count: %d" % len([item for item ])
         print "error_rate after %d epochs: %g" % (e, accuracy([item for sublist in predictions_test for item in sublist], 
                                                             [item for sublist in groundtruth_test for item in sublist]))
         
@@ -162,8 +164,8 @@ def main():
         #     print ''
         
         # learning rate decay if no improvement in 10 epochs
-        if s['decay'] and abs(s['be']-s['ce']) >= 10: s['clr'] *= 0.5 
-        if s['clr'] < 1e-5: break
+        if s['decay'] and abs(s['be']-s['ce']) >= 5: s['clr'] *= 0.5 
+        if s['clr'] < 1e-6: break
 
     #print 'BEST RESULT: epoch', e, 'valid F1', s['vf1'], 'best test F1', s['tf1'], 'with the model', folder
 
