@@ -6,6 +6,7 @@ import os
 import random
 import argparse
 import pdb
+import re
 
 sys.path.append(os.path.abspath('..'))
 
@@ -14,6 +15,27 @@ from is13.data import mpqa_load
 from is13.rnn.deep_sentence import model
 from is13.metrics.accuracy import conlleval, accuracy
 from is13.utils.tools import shuffle, minibatch, contextwin
+from gensim.models import Word2Vec
+
+def load_embeddings(embfile, idx2word, vocsize):
+    storage_path = os.path.join('./embeddings', embfile + '.npy')
+    try:
+        embeddings = numpy.load(storage_path)
+    except IOError:
+        print "Embeddings not found on disk, loading them from model binary"
+        mikolov_model = Word2Vec.load_word2vec_format(embfile, binary=True)
+        embeddings = numpy.zeros((vocsize, 300))
+        for i in xrange(vocsize):
+            word = re.sub('",', '', idx2word[i].lower())
+            try:
+                embeddings[i] = mikolov_model[word]
+            except:
+                print "%s not found in model" % word
+        #pdb.set_trace()
+        print "Done loading embeddings"
+        numpy.save(storage_path, embeddings)
+
+    return embeddings
 
 def main():
     parser = argparse.ArgumentParser()
@@ -21,29 +43,24 @@ def main():
                         help='Adjust level of verbosity.')
     parser.add_argument('-nh', '--num-hidden', dest='num_hidden', type=int, default=100,
                         help='Set dimension of hidden units.')
-    parser.add_argument('-w', '--window', type=int, default=5,
-                        help='Set size of context window (in words).')
-    parser.add_argument('-d', '--depth', type=int, default=3,
+    parser.add_argument('-d', '--depth', type=int, default=5,
                         help='Set number of stacked layers')
     parser.add_argument('--seed', type=int, default=345,
                         help='Set PRNG seed')
-    parser.add_argument('--emb-dim', dest='emb_dimension', type=int, default=100,
-                        help='Set size of word embeddings')
+    parser.add_argument('--emb-file', dest='emb_file', type=str,
+                        help='Location of file containing word embeddings')
     parser.add_argument('-e', '--num-epochs', dest='num_epochs', type=int, default=50,
                         help='Set number of epochs to train')
 
     args = parser.parse_args()
 
-    s = {'fold': 3, # 5 folds 0,1,2,3,4
-         'lr': 1,
+    s = {'lr': 0.000627142536696559,
          'verbose': args.verbose,
-         'decay': False, # decay on the learning rate if improvement stops
-         'win': args.window, # number of words in the context window
-         'bs': 9, # number of backprop through time steps
+         'decay': True, # decay on the learning rate if improvement stops
          'nhidden': args.num_hidden, # number of hidden units
          'depth': args.depth, # number of layers in space
          'seed': args.seed,
-         'emb_dimension': args.emb_dimension, # dimension of word embedding
+         #'emb_dimension': args.emb_dimension, # dimension of word embedding
          'nepochs': args.num_epochs}
 
     folder = os.path.basename(__file__).split('.')[0]
@@ -70,81 +87,62 @@ def main():
     rnn = model(    nh = s['nhidden'],
                     nc = nclasses,
                     ne = vocsize,
-                    de = s['emb_dimension'],
-                    cs = s['win'],
-                    depth = s['depth'] )
+                    depth = s['depth'],
+                    embeddings = load_embeddings(args.emb_file, idx2word, vocsize) )
 
     # train with early stopping on validation set
     best_f1 = -numpy.inf
     s['clr'] = s['lr']
+    s['be'] = 0
     for e in xrange(s['nepochs']):
         # shuffle
         shuffle([train_lex, train_y], s['seed'])
         s['ce'] = e
         tic = time.time()
-        for i in xrange(nsentences/8):
-            # try:
-                #words = numpy.asarray(train_lex[i]).astype('int32').reshape((len(train_lex[i]), 1))
-                #labels = numpy.asarray(train_y[i]).astype('int32').reshape(len(train_y[i]))
-                #print words
-                #if len(words) == 0: continue
-                #rnn.train(words, labels, s['clr'])
-                #rnn.normalize()
-           #except:
-                # 1
-                #pdb.set_trace()
-            #try:
-                cwords = contextwin(train_lex[i], s['win'])
-                words  = map(lambda x: numpy.asarray(x).astype('int32'),\
-                             minibatch(cwords, s['bs']))
+        for i in xrange(nsentences):
+            words = numpy.asarray(train_lex[i]).astype('int32').reshape((len(train_lex[i]), 1))
+            labels = numpy.asarray(train_y[i]).astype('int32').reshape(len(train_y[i]))
+            if len(words) == 0: continue
 
-                #clabels = contextwin(train_y[i], s['win'])
-                labels = map(lambda x: numpy.asarray(x).astype('int32'),\
-                             minibatch(train_y[i], s['bs']))
-                #labels = [numpy.asarray(train_y[i][:(end+1)]).astype('int32') for end in xrange(s['bs'])]
-                for word_batch, label_batch in zip(words, labels):
-                    #print "Word batch: ", word_batch
-                    #print "label_batch: ", label_batch
-                    rnn.train(word_batch, label_batch, s['clr'])
-                    rnn.normalize()
+            nll, _s = rnn.train(words, labels, s['clr'])
+            
+            #rnn.normalize()
 
-                if s['verbose']:
-                    print '[learning] epoch %i >> %2.2f%%'%(e,(i+1)*100./nsentences),'completed in %.2f (sec) <<\r'%(time.time()-tic),
-                    sys.stdout.flush()
+            if args.verbose > 0 and i % 10000 == 0:
+                pdb.set_trace()
+                print _s
+                print '[learning] epoch %i >> %2.2f%%' % (e, (i+1)*100./nsentences), '\tCurrent log loss: %g' % nll
+                sys.stdout.flush()
+
+            # if s['verbose']:
+            #     print '[learning] epoch %i >> %2.2f%%'%(e,(i+1)*100./nsentences),'completed in %.2f (sec) <<\r'%(time.time()-tic),
+            #     sys.stdout.flush()
             #except:
                 #pdb.set_trace()
         
         #pdb.set_trace()
         # evaluation // back into the real world : idx -> words
-        # predictions_test = [ map(lambda x: idx2label[x], \
-        #                      rnn.classify(numpy.asarray(x).astype('int32').reshape((len(x), 1)))) \
-        #                      for x in test_lex if len(x) > 0 ]
-        # groundtruth_test = [ map(lambda x: idx2label[x], y) for y in test_y if len(y) > 0 ]
-        # words_test = [ map(lambda x: idx2word[x], w) for w in test_lex if len(w) > 0 ]
-
-        # predictions_valid = [ map(lambda x: idx2label[x], \
-        #                      rnn.classify(numpy.asarray(x).astype('int32').reshape((len(x), 1)))) \
-        #                      for x in valid_lex if len(x) > 0 ]
-        # groundtruth_valid = [ map(lambda x: idx2label[x], y) for y in valid_y if len(y) > 0 ]
-        # words_valid = [ map(lambda x: idx2word[x], w) for w in valid_lex if len(w) > 0 ]
-
         predictions_test = [ map(lambda x: idx2label[x], \
-                             rnn.classify(numpy.asarray(contextwin(x, s['win'])).astype('int32')))\
+                             rnn.classify(numpy.asarray(x).astype('int32').reshape((len(x), 1)))) \
                              for x in test_lex if len(x) > 0 ]
         groundtruth_test = [ map(lambda x: idx2label[x], y) for y in test_y if len(y) > 0 ]
         words_test = [ map(lambda x: idx2word[x], w) for w in test_lex if len(w) > 0 ]
 
-        # predictions_valid = [ map(lambda x: idx2label[x], \
-        #                      rnn.classify(numpy.asarray(contextwin(x, s['win'])).astype('int32')))\
-        #                      for x in valid_lex ]
-        # groundtruth_valid = [ map(lambda x: idx2label[x], y) for y in valid_y ]
-        # words_valid = [ map(lambda x: idx2word[x], w) for w in valid_lex]
+        predictions_valid = [ map(lambda x: idx2label[x], \
+                             rnn.classify(numpy.asarray(x).astype('int32').reshape((len(x), 1)))) \
+                             for x in valid_lex if len(x) > 0 ]
+        groundtruth_valid = [ map(lambda x: idx2label[x], y) for y in valid_y if len(y) > 0 ]
+        words_valid = [ map(lambda x: idx2word[x], w) for w in valid_lex if len(w) > 0 ]
 
         #pdb.set_trace()
 
         # evaluation // compute the accuracy using conlleval.pl
+        error_rate = accuracy([item for sublist in predictions_test for item in sublist], 
+                                                            [item for sublist in groundtruth_test for item in sublist])
+        if error_rate < best_f1:
+            s['be'] = e
 
-        print "Accuracy after %d epochs: %g" % (e, accuracy([item for sublist in predictions_test for item in sublist], 
+        print "error_rate after %d epochs: %g" % (e, accuracy([item for sublist in predictions_test for item in sublist], 
                                                             [item for sublist in groundtruth_test for item in sublist]))
         
         #res_test  = conlleval(predictions_test, groundtruth_test, words_test, folder + '/current.test.txt')
