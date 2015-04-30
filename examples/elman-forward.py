@@ -5,6 +5,8 @@ import subprocess
 import os
 import random
 
+sys.path.append(os.path.abspath('..'))
+
 from is13.data import load
 from is13.rnn.elman import model
 from is13.metrics.accuracy import conlleval
@@ -68,6 +70,8 @@ if __name__ == '__main__':
                          minibatch(cwords, s['bs']))
             labels = train_y[i]
             for word_batch , label_last_word in zip(words, labels):
+                print "word_batch: ", word_batch
+                print "label_last_word: ", label_last_word
                 rnn.train(word_batch, label_last_word, s['clr'])
                 rnn.normalize()
             if s['verbose']:

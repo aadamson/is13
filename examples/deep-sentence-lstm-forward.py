@@ -12,7 +12,7 @@ sys.path.append(os.path.abspath('..'))
 
 from is13.data import load
 from is13.data import mpqa_load
-from is13.rnn.deep_sentence import model
+from is13.rnn.deep_sentence_lstm import model
 from is13.metrics.accuracy import conlleval, accuracy
 from is13.utils.tools import shuffle, minibatch, contextwin
 from gensim.models import Word2Vec
@@ -40,9 +40,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', '--verbose', action='count', default=1,
                         help='Adjust level of verbosity.')
-    parser.add_argument('-nh', '--num-hidden', dest='num_hidden', type=int, default=100,
+    parser.add_argument('-nh', '--num-hidden', dest='num_hidden', type=int, default=20,
                         help='Set dimension of hidden units.')
-    parser.add_argument('-d', '--depth', type=int, default=5,
+    parser.add_argument('-d', '--depth', type=int, default=3,
                         help='Set number of stacked layers')
     parser.add_argument('-l', '--lambda', dest='lam', type=float, default=0.0001,
                         help='Set lambda value used for L2-regularization')
@@ -110,10 +110,10 @@ def main():
             
             if args.verbose > 0 and i % 100 == 0:
                 for idx in xrange(len(words)):
-                    print [round(item, 3) for item in _s[idx,0,:].tolist()], idx2word[words[idx]], labels[idx]
+                    print [round(item, 3) for item in _s[idx,0,:].tolist()], labels[idx], idx2word[words[idx]]
                 print '[learning] epoch %i >> %2.2f%%' % (e, (i+1)*100./nsentences), '\tCurrent cost: %.3f' % cost
                 sys.stdout.flush()
-                
+        
         #pdb.set_trace()
         # evaluation // back into the real world : idx -> words
         predictions_test = [ map(lambda x: idx2label[x], \
