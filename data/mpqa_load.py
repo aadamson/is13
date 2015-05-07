@@ -31,15 +31,15 @@ def mpqa(filename):
     shuffle([sentences, labels], 69)
 
     n = len(sentences)
-    training_size = int(floor(n * 0.5))
+    training_size = int(floor(n * 0.8))
     training_end = training_size-1
     train_set = (sentences[0:training_end], labels[0:training_end])
 
-    valid_size = int(floor(n * 0.25))
+    valid_size = int(floor(n * 0.1))
     valid_end = training_size + valid_size - 1
     valid_set = (sentences[training_size:valid_end], labels[training_size:valid_end])
 
-    test_size = int(floor(n * 0.25))
+    test_size = int(floor(n * 0.1))
     test_begin = valid_end + 1
     test_end = valid_end + test_size - 1
     test_set = (sentences[test_begin:test_end], labels[test_begin:test_end])

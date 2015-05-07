@@ -10,7 +10,7 @@ def relu(x):
 
 class model(object):
     
-    def __init__(self, nh, nc, ne, depth, embeddings, lam=0.03):
+    def __init__(self, nh, nc, ne, depth, embeddings, lam=0.03, adagrad=False):
         f = relu
         '''
         nh :: dimension of the hidden layer
@@ -76,9 +76,9 @@ class model(object):
         self.forward_h1_0 = theano.shared(name='forward_h1_0',
                                           value=np.zeros(nh,
                                           dtype=theano.config.floatX))
-        self.back_h1_tp1 = theano.shared(name='back_h1_tp1',
-                                         value=np.zeros(nh,
-                                         dtype=theano.config.floatX))
+        self.back_h1_tp1  = theano.shared(name='back_h1_tp1',
+                                          value=np.zeros(nh,
+                                          dtype=theano.config.floatX))
 
 
         # bundle
@@ -88,6 +88,11 @@ class model(object):
                        self.c, self.forward_U, self.back_U,
                        self.forward_w1, self.back_w1,
                        self.forward_h1_0, self.back_h1_tp1]
+        if adagrad:
+          grad_cache = {}
+          for param in self.params:
+              grad_cache[param] = theano.shared(name=param.name+'_grad_cache',
+                                                value=np.zeros(param.get_value().shape, dtype=theano.config.floatX))
 
         self.regularized_params = [self.forward_w, self.back_w, 
                                    self.forward_v, self.back_v,
@@ -178,21 +183,27 @@ class model(object):
         p_y_given_x = s[:,0,:]
         y_pred = T.argmax(p_y_given_x, axis=1)
 
-        alpha = T.scalar('alpha')
+        alpha          = T.scalar('alpha')
         log_likelihood = T.mean(T.log(p_y_given_x)[T.arange(x.shape[0]), y])
 
-        l2_norm = sum([(param ** 2).sum() for param in self.regularized_params])
-        
-        cost = -log_likelihood + self.lam*l2_norm
-        gradients = T.grad(cost, self.params)
-        updates = OrderedDict((param, param - alpha*gradient) for param, gradient in zip(self.params, gradients))
+        l2_norm   = sum([(param ** 2).sum() for param in self.regularized_params])
+        cost      = -log_likelihood + self.lam*l2_norm
+        gradients = T.grad(theano.gradient.grad_clip(cost, -1, 1), self.params)
+
+        updates = []
+        if adagrad:
+            # Use 1e-6 as fudge factor for numerical stability
+            updates += [(grad_cache[param], grad_cache[param] + gradient**2) for param, gradient in zip(self.params, gradients)]
+            updates += [(param, param - alpha/T.sqrt(1e-6 + grad_cache[param])*gradient) for param, gradient in zip(self.params, gradients)]
+        else:
+            updates += [(param, param - alpha*gradient) for param, gradient in zip(self.params, gradients)]
         
         # theano functions
         self.classify = theano.function(inputs=[idxs], outputs=y_pred)
 
         self.train = theano.function(inputs  = [idxs, y, alpha],
                                      outputs = [cost, s],
-                                     updates = updates)
+                                     updates = OrderedDict(updates))
 
     def save(self, folder):   
         for param, name in zip(self.params, self.names):

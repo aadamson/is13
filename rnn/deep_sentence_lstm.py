@@ -10,7 +10,7 @@ def relu(x):
 
 class model(object):
     
-    def __init__(self, nh, nc, ne, depth, embeddings, lam=0.03):
+    def __init__(self, nh, nc, ne, depth, embeddings, lam=0.03, adagrad=False):
         f = relu
         '''
         nh :: dimension of the hidden layer
@@ -171,6 +171,11 @@ class model(object):
                        self.forward_w1_cell, self.back_w1_cell,
                        self.forward_h1_0, self.back_h1_tp1,
                        self.forward_c1_0, self.back_c1_tp1]
+        if adagrad:
+            grad_cache = {}
+            for param in self.params:
+                grad_cache[param] = theano.shared(name=param.name+'_grad_cache',
+                                                  value=np.zeros(param.get_value().shape, dtype=theano.config.floatX))
 
         self.regularized_params = [self.forward_w_in, self.back_w_in, 
                                    self.forward_v_in, self.back_v_in,
@@ -341,15 +346,23 @@ class model(object):
         l2_norm = sum([(param ** 2).sum() for param in self.regularized_params])
         
         cost = -log_likelihood + self.lam*l2_norm
-        gradients = T.grad(cost, self.params)
-        updates = OrderedDict((param, param - alpha*gradient) for param, gradient in zip(self.params, gradients))
+        gradients = T.grad(theano.gradient.grad_clip(cost, -1, 1), self.params)
+
+        updates = []
+        if adagrad:
+            # Use 1e-6 as fudge factor for numerical stability
+            updates += [(grad_cache[param], grad_cache[param] + gradient**2) for param, gradient in zip(self.params, gradients)]
+            updates += [(param, param - alpha/T.sqrt(1e-6 + grad_cache[param])*gradient) for param, gradient in zip(self.params, gradients)]
+        else:
+            updates += [(param, param - alpha*gradient) for param, gradient in zip(self.params, gradients)]
         
         # theano functions
         self.classify = theano.function(inputs=[idxs], outputs=y_pred)
 
         self.train = theano.function(inputs  = [idxs, y, alpha],
                                      outputs = [cost, s],
-                                     updates = updates)
+                                     updates = OrderedDict(updates))
+
 
     def save(self, folder):   
         for param, name in zip(self.params, self.names):

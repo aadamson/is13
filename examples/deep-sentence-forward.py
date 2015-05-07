@@ -40,9 +40,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', '--verbose', action='count', default=1,
                         help='Adjust level of verbosity.')
-    parser.add_argument('-nh', '--num-hidden', dest='num_hidden', type=int, default=100,
+    parser.add_argument('-nh', '--num-hidden', dest='num_hidden', type=int, default=20,
                         help='Set dimension of hidden units.')
-    parser.add_argument('-d', '--depth', type=int, default=5,
+    parser.add_argument('-d', '--depth', type=int, default=3,
                         help='Set number of stacked layers')
     parser.add_argument('-l', '--lambda', dest='lam', type=float, default=0.0001,
                         help='Set lambda value used for L2-regularization')
@@ -50,12 +50,16 @@ def main():
                         help='Set PRNG seed')
     parser.add_argument('--emb-file', dest='emb_file', type=str,
                         help='Location of file containing word embeddings')
-    parser.add_argument('-e', '--num-epochs', dest='num_epochs', type=int, default=50,
+    parser.add_argument('-e', '--num-epochs', dest='num_epochs', type=int, default=200,
                         help='Set number of epochs to train')
+    parser.add_argument('-a', '--alpha', dest='alpha', type=float, default=0.001,
+                        help='Set the learning rate')
+    parser.add_argument('--ex', dest='examples_file', type=str, default='./mpqa2data.pkl',
+                        help='Path to file containing the pkled complete dataset')
 
     args = parser.parse_args()
 
-    s = {'lr': 0.01,
+    s = {'lr': args.alpha,
          'verbose': args.verbose,
          'decay': True, # decay on the learning rate if improvement stops
          'nhidden': args.num_hidden, # number of hidden units
@@ -68,7 +72,7 @@ def main():
     if not os.path.exists(folder): os.mkdir(folder)
 
     # load the dataset
-    train_set, valid_set, test_set, dic = mpqa_load.mpqa('mpqa2data.pkl')
+    train_set, valid_set, test_set, dic = mpqa_load.mpqa(args.examples_file)
     idx2label = dic['idx2label']
     idx2word  = dic['idx2word']
 
@@ -110,10 +114,9 @@ def main():
             
             if args.verbose > 0 and i % 100 == 0:
                 for idx in xrange(len(words)):
-                    print [round(item, 3) for item in _s[idx,0,:].tolist()], idx2word[words[idx]], labels[idx]
+                    print [round(item, 3) for item in _s[idx,0,:].tolist()], labels[idx], numpy.argmax(_s[idx,0,:]), idx2word[words[idx]]
                 print '[learning] epoch %i >> %2.2f%%' % (e, (i+1)*100./nsentences), '\tCurrent cost: %.3f' % cost
-                sys.stdout.flush()
-                
+
         #pdb.set_trace()
         # evaluation // back into the real world : idx -> words
         predictions_test = [ map(lambda x: idx2label[x], \
@@ -172,12 +175,6 @@ def main():
         #     subprocess.call(['mv', folder + '/current.valid.txt', folder + '/best.valid.txt'])
         # else:
         #     print ''
-        
-        # learning rate decay if no improvement in 10 epochs
-        if s['decay'] and abs(s['be']-s['ce']) >= 3: 
-            s['clr'] *= 0.5 
-            s['be'] = s['ce']
-        #if s['clr'] < 1e-6: break
 
     #print 'BEST RESULT: epoch', e, 'valid F1', s['vf1'], 'best test F1', s['tf1'], 'with the model', folder
 
