@@ -183,13 +183,14 @@ class model(object):
         p_y_given_x = s[:,0,:]
         y_pred = T.argmax(p_y_given_x, axis=1)
 
-        alpha          = T.scalar('alpha')
-        log_likelihood = T.mean(T.log(p_y_given_x)[T.arange(x.shape[0]), y])
+        y_mat = T.extra_ops.to_one_hot(y, nc)
+        ce    = T.mean(T.nnet.categorical_crossentropy(p_y_given_x, y_mat))
 
         l2_norm   = sum([(param ** 2).sum() for param in self.regularized_params])
-        cost      = -log_likelihood + self.lam*l2_norm
+        cost      = ce + self.lam*l2_norm
         gradients = T.grad(theano.gradient.grad_clip(cost, -1, 1), self.params)
 
+        alpha   = T.scalar('alpha')
         updates = []
         if adagrad:
             # Use 1e-6 as fudge factor for numerical stability
