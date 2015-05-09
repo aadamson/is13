@@ -56,6 +56,8 @@ def main():
                         help='Set the learning rate')
     parser.add_argument('--ex', dest='examples_file', type=str, default='./mpqa2data.pkl',
                         help='Path to file containing the pkled complete dataset')
+    parser.add_argument('--adagrad', dest='adagrad', type=bool, default=True,
+                    help='Enable adagrad')
 
     args = parser.parse_args()
 
@@ -94,7 +96,8 @@ def main():
                     ne = vocsize,
                     depth = s['depth'],
                     embeddings = load_embeddings(args.emb_file, idx2word, vocsize),
-                    lam=args.lam )
+                    lam=args.lam,
+                    adagrad=args.adagrad )
 
     # train with early stopping on validation set
     best_f1 = -numpy.inf
@@ -112,7 +115,7 @@ def main():
 
             cost, _s = rnn.train(words, labels, s['clr'])
             
-            if args.verbose > 0 and i % 100 == 0:
+            if args.verbose > 0 and i % nsentences/2 == 0:
                 for idx in xrange(len(words)):
                     print [round(item, 3) for item in _s[idx,0,:].tolist()], labels[idx], numpy.argmax(_s[idx,0,:]), idx2word[words[idx]]
                 print '[learning] epoch %i >> %2.2f%%' % (e, (i+1)*100./nsentences), '\tCurrent cost: %.3f' % cost

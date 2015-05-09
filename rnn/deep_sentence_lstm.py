@@ -1,6 +1,7 @@
 import theano
 import numpy as np
 import os
+import math
 
 from theano import tensor as T
 from collections import OrderedDict
@@ -10,7 +11,7 @@ def relu(x):
 
 class model(object):
     
-    def __init__(self, nh, nc, ne, depth, embeddings, lam=0.03, adagrad=False):
+    def __init__(self, nh, nc, ne, depth, embeddings, lam=0.03, adagrad=True):
         f = relu
         '''
         nh :: dimension of the hidden layer
@@ -30,70 +31,70 @@ class model(object):
 
         # Inner layer paramters
         self.forward_v_in = theano.shared(name='forward_v_in', 
-                                       value=0.2 * np.random.uniform(-1.0, 1.0,
+                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
                                        (depth, nh, nh))
                                        .astype(theano.config.floatX))
         self.back_v_in    = theano.shared(name='back_v_in', 
-                                       value=0.2 * np.random.uniform(-1.0, 1.0,
+                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
                                        (depth, nh, nh))
                                        .astype(theano.config.floatX))
         self.forward_w_in = theano.shared(name='forward_w_in', 
-                                       value=0.2 * np.random.uniform(-1.0, 1.0,
+                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
                                        (depth, nh, nh))
                                        .astype(theano.config.floatX))
         self.back_w_in    = theano.shared(name='back_w_in', 
-                                       value=0.2 * np.random.uniform(-1.0, 1.0,
+                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
                                        (depth, nh, nh))
                                        .astype(theano.config.floatX))
 
         self.forward_v_forget = theano.shared(name='forward_v_forget', 
-                                       value=0.2 * np.random.uniform(-1.0, 1.0,
+                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
                                        (depth, nh, nh))
                                        .astype(theano.config.floatX))
         self.back_v_forget    = theano.shared(name='back_v_forget', 
-                                       value=0.2 * np.random.uniform(-1.0, 1.0,
+                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
                                        (depth, nh, nh))
                                        .astype(theano.config.floatX))
         self.forward_w_forget = theano.shared(name='forward_w_forget', 
-                                       value=0.2 * np.random.uniform(-1.0, 1.0,
+                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
                                        (depth, nh, nh))
                                        .astype(theano.config.floatX))
         self.back_w_forget    = theano.shared(name='back_w_forget', 
-                                       value=0.2 * np.random.uniform(-1.0, 1.0,
+                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
                                        (depth, nh, nh))
                                        .astype(theano.config.floatX))
 
         self.forward_v_out = theano.shared(name='forward_v_out', 
-                                       value=0.2 * np.random.uniform(-1.0, 1.0,
+                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
                                        (depth, nh, nh))
                                        .astype(theano.config.floatX))
         self.back_v_out    = theano.shared(name='back_v_out', 
-                                       value=0.2 * np.random.uniform(-1.0, 1.0,
+                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
                                        (depth, nh, nh))
                                        .astype(theano.config.floatX))
         self.forward_w_out = theano.shared(name='forward_w_out', 
-                                       value=0.2 * np.random.uniform(-1.0, 1.0,
+                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
                                        (depth, nh, nh))
                                        .astype(theano.config.floatX))
         self.back_w_out    = theano.shared(name='back_w_out', 
-                                       value=0.2 * np.random.uniform(-1.0, 1.0,
+                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
                                        (depth, nh, nh))
                                        .astype(theano.config.floatX))
 
         self.forward_v_cell  = theano.shared(name='forward_v_cell ', 
-                                       value=0.2 * np.random.uniform(-1.0, 1.0,
+                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
                                        (depth, nh, nh))
                                        .astype(theano.config.floatX))
         self.back_v_cell     = theano.shared(name='back_v_cell ', 
-                                       value=0.2 * np.random.uniform(-1.0, 1.0,
+                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
                                        (depth, nh, nh))
                                        .astype(theano.config.floatX))
         self.forward_w_cell  = theano.shared(name='forward_w_cell ', 
-                                       value=0.2 * np.random.uniform(-1.0, 1.0,
+                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
                                        (depth, nh, nh))
                                        .astype(theano.config.floatX))
         self.back_w_cell     = theano.shared(name='back_w_cell ', 
-                                       value=0.2 * np.random.uniform(-1.0, 1.0,
+                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
                                        (depth, nh, nh))
                                        .astype(theano.config.floatX))
 
@@ -346,7 +347,7 @@ class model(object):
         l2_norm = sum([(param ** 2).sum() for param in self.regularized_params])
         
         cost = -log_likelihood + self.lam*l2_norm
-        gradients = T.grad(theano.gradient.grad_clip(cost, -1, 1), self.params)
+        gradients = T.grad(cost, self.params)
 
         updates = []
         if adagrad:

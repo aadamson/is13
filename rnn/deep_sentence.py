@@ -1,6 +1,7 @@
 import theano
 import numpy as np
 import os
+import math
 
 from theano import tensor as T
 from collections import OrderedDict
@@ -30,19 +31,19 @@ class model(object):
 
         # Inner layer paramters
         self.forward_v = theano.shared(name='forward_v', 
-                                       value=0.2 * np.random.uniform(-1.0, 1.0,
+                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
                                        (depth, nh, nh))
                                        .astype(theano.config.floatX))
         self.back_v    = theano.shared(name='back_v', 
-                                       value=0.2 * np.random.uniform(-1.0, 1.0,
+                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
                                        (depth, nh, nh))
                                        .astype(theano.config.floatX))
         self.forward_w = theano.shared(name='forward_w', 
-                                       value=0.2 * np.random.uniform(-1.0, 1.0,
+                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
                                        (depth, nh, nh))
                                        .astype(theano.config.floatX))
         self.back_w    = theano.shared(name='back_w', 
-                                       value=0.2 * np.random.uniform(-1.0, 1.0,
+                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
                                        (depth, nh, nh))
                                        .astype(theano.config.floatX))
         self.forward_b = theano.shared(name='forward_b',
@@ -54,22 +55,24 @@ class model(object):
 
         # First layer parameters
         self.forward_w1 = theano.shared(name='forward_w1',
-                                        value=0.2 * np.random.uniform(-1.0, 1.0,
-                                        (de, nh)))
+                                        value=np.random.uniform(-math.sqrt(6.0)/(de+nh), math.sqrt(6.0)/(de+nh),
+                                        (de, nh))
+                                        .astype(theano.config.floatX))
         self.back_w1    = theano.shared(name='back_w1',
-                                        value=0.2 * np.random.uniform(-1.0, 1.0,
-                                        (de, nh)))
+                                        value=np.random.uniform(-math.sqrt(6.0)/(de+nh), math.sqrt(6.0)/(de+nh),
+                                        (de, nh))
+                                        .astype(theano.config.floatX))
 
         # Output layer parameters
         self.c         = theano.shared(name='c',
                                        value=np.zeros(nc,
                                        dtype=theano.config.floatX))
         self.forward_U = theano.shared(name='forward_U',
-                                       value=0.2 * np.random.uniform(-1.0, 1.0,
+                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nc), math.sqrt(6.0)/(nh+nc),
                                        (nh, nc))
                                        .astype(theano.config.floatX))
         self.back_U    = theano.shared(name='back_U',
-                                       value=0.2 * np.random.uniform(-1.0, 1.0,
+                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nc), math.sqrt(6.0)/(nh+nc),
                                        (nh, nc))
                                        .astype(theano.config.floatX))
 
@@ -188,7 +191,7 @@ class model(object):
 
         l2_norm   = sum([(param ** 2).sum() for param in self.regularized_params])
         cost      = ce + self.lam*l2_norm
-        gradients = T.grad(theano.gradient.grad_clip(cost, -1, 1), self.params)
+        gradients = T.grad(cost, self.params)
 
         alpha   = T.scalar('alpha')
         updates = []
