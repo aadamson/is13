@@ -38,14 +38,24 @@ class model(object):
                                        value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
                                        (depth, nh, nh))
                                        .astype(theano.config.floatX))
-        self.forward_w = theano.shared(name='forward_w', 
-                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
-                                       (depth, nh, nh))
-                                       .astype(theano.config.floatX))
-        self.back_w    = theano.shared(name='back_w', 
-                                       value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
-                                       (depth, nh, nh))
-                                       .astype(theano.config.floatX))
+
+        self.Wff = theano.shared(name='Wff', 
+                                 value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
+                                 (depth, nh, nh))
+                                 .astype(theano.config.floatX))
+        self.Wfb = theano.shared(name='Wfb', 
+                                 value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
+                                 (depth, nh, nh))
+                                 .astype(theano.config.floatX))
+        self.Wbf = theano.shared(name='Wbf', 
+                                 value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
+                                 (depth, nh, nh))
+                                 .astype(theano.config.floatX))
+        self.Wbb = theano.shared(name='Wbb', 
+                                 value=np.random.uniform(-math.sqrt(6.0)/(nh+nh), math.sqrt(6.0)/(nh+nh),
+                                 (depth, nh, nh))
+                                 .astype(theano.config.floatX))
+
         self.forward_b = theano.shared(name='forward_b',
                                        value=np.zeros((depth, nh),
                                        dtype=theano.config.floatX))
@@ -85,7 +95,8 @@ class model(object):
 
 
         # bundle
-        self.params = [self.forward_w, self.back_w, 
+        self.params = [self.Wff, self.Wfb, 
+                       self.Wbf, self.Wbb,
                        self.forward_v, self.back_v, 
                        self.forward_b, self.back_b, 
                        self.c, self.forward_U, self.back_U,
@@ -97,11 +108,12 @@ class model(object):
               grad_cache[param] = theano.shared(name=param.name+'_grad_cache',
                                                 value=np.zeros(param.get_value().shape, dtype=theano.config.floatX))
 
-        self.regularized_params = [self.forward_w, self.back_w, 
+        self.regularized_params = [self.Wff, self.Wfb, 
+                                   self.Wbf, self.Wbb,
                                    self.forward_v, self.back_v,
                                    self.forward_w1, self.back_w1]
 
-        self.names  = ['forward_w', 'back_w', 
+        self.names  = ['Wff', 'Wfb', 'Wbf', 'Wbb', 
                        'forward_v', 'back_v', 
                        'forward_b', 'back_b', 
                        'c', 'forward_U', 'back_U',
@@ -122,15 +134,15 @@ class model(object):
             return s
 
         def forward_recurrence_igt1(forward_h_t_im1, back_h_t_im1, forward_h_tm1_i, i):
-            forward_h_t_i = f(T.dot(forward_h_t_im1, self.forward_w[i])
-                              + T.dot(back_h_t_im1, self.forward_w[i])
+            forward_h_t_i = f(T.dot(forward_h_t_im1, self.Wff[i])
+                              + T.dot(back_h_t_im1, self.Wfb[i])
                               + T.dot(forward_h_tm1_i, self.forward_v[i]) 
                               + self.forward_b[i])
             return forward_h_t_i
 
         def back_recurrence_igt1(forward_h_t_im1, back_h_t_im1, back_h_tp1_i, i):
-            back_h_t_i    = f(T.dot(forward_h_t_im1, self.back_w[i])
-                              + T.dot(back_h_t_im1, self.back_w[i])
+            back_h_t_i    = f(T.dot(forward_h_t_im1, self.Wbf[i])
+                              + T.dot(back_h_t_im1, self.Wbb[i])
                               + T.dot(back_h_tp1_i, self.back_v[i]) 
                               + self.back_b[i])
             return back_h_t_i
